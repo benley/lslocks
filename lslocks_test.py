@@ -12,6 +12,14 @@ import lslocks
 
 
 class LslocksTests(unittest.TestCase):
+    """Tests for lslocks.
+
+    Using flock(1) from util-linux instead of python's fcntl module because the
+    instructions asked for subprocesses.
+
+    Probably could have used fork() or multiprocessing to stay python native
+    and not assume anything about what system we're running on, if necessary.
+    """
 
     def _lockhelper(self, path):
         proc = subprocess.Popen(
@@ -25,24 +33,25 @@ class LslocksTests(unittest.TestCase):
         self.tmpdirs = []
         self.tmpfiles = []
 
-        self.empty_dir_without_locks = tempfile.mkdtemp()
-
     def tearDown(self):
         for proc in self.subprocs:
             logging.debug('Killing %s', proc.pid)
             proc.terminate()
-        os.rmdir(self.empty_dir_without_locks)
         for tmpf in self.tmpfiles:
             os.unlink(tmpf)
         for tmpd in self.tmpdirs:
             os.removedirs(tmpd)
 
     def testNoLocks(self):
+        """Verify that it doesn't find anything when there are no locks."""
+        emptydir = tempfile.mkdtemp()
+        self.tmpdirs.append(emptydir)
         self.assertListEqual(
-            list(lslocks.lslocks(self.empty_dir_without_locks)),
+            list(lslocks.lslocks(emptydir)),
             [])
 
     def testDirLock(self):
+        """Lock a directory, check that lslocks sees it."""
         dirtolock = tempfile.mkdtemp()
         lockproc = self._lockhelper(dirtolock)
         time.sleep(1)  # Ugly, sorry. Give flock a moment to start up.
@@ -54,6 +63,7 @@ class LslocksTests(unittest.TestCase):
             [(lockproc.pid, dirtolock)])
 
     def testFileLocks(self):
+        """Lock several files, verify that lslocks finds all of them."""
         basedir = tempfile.mkdtemp()
         self.tmpdirs.append(basedir)
         locked_files = [tempfile.mkstemp(dir=basedir)[1]
