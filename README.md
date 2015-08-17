@@ -18,6 +18,8 @@ pip install -r requirements.txt
 
 ```sh
 ./lslocks_test.py
+# Or,
+python setup.py test
 ```
 
 ### Notes
