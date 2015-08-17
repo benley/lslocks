@@ -20,7 +20,7 @@ def gen_imap(rootdir):
 
     imap = collections.defaultdict(set)
 
-    def _dopath(base, path):
+    def _dopath(base, path=''):
         fpath = os.path.join(base, path)
         try:
             imap[os.stat(fpath).st_ino].add(fpath)
@@ -32,6 +32,9 @@ def gen_imap(rootdir):
             _dopath(dirpath, dirname)
         for filename in filenames:
             _dopath(dirpath, filename)
+    # Include the root directory as well:
+    _dopath(rootdir)
+
     return imap
 
 
@@ -71,21 +74,30 @@ def filter_locks(locks, inode_map):
             yield (pid, inode_map[_inode])
 
 
-def main(rootpath):
-    """Main"""
+def lslocks(rootpath):
+    """Get a map of pids to files locked under rootpath."""
     inode_map = gen_imap(rootpath)
 
     with open('/proc/locks') as locks_fh:
         locks = filter_locks(read_locks(locks_fh), inode_map)
 
-        print('PID\tPath')
         for (pid, locked_paths) in locks:
             for path in locked_paths:
-                print('%s\t%s' % (pid, path))
+                yield (int(pid), path)
+
+
+def main(argv):
+    """Main"""
+    if len(argv) != 2:
+        sys.stderr.write('USAGE: %s <directory>\n')
+        sys.exit(1)
+
+    rootpath = argv[1]
+
+    print('PID\tPath')
+    for (pid, path) in lslocks(rootpath):
+        print('%s\t%s' % (pid, path))
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        sys.stderr.write('USAGE: %s <directory>\n')
-        sys.exit(1)
-    main(sys.argv[1])
+    main(sys.argv)
