@@ -21,6 +21,7 @@ def gen_imap(rootdir):
     imap = collections.defaultdict(set)
 
     def _dopath(base, path=''):
+        """Process a path into imap."""
         fpath = os.path.join(base, path)
         try:
             imap[os.stat(fpath).st_ino].add(fpath)

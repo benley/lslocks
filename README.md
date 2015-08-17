@@ -27,3 +27,6 @@ pip install -r requirements.txt
   utility from util-linux is present.
 - It was unclear if the file list should be filtered to match \*.lock or not.
   This implementation does not filter like that.
+- Pays no attention to filesystem boundaries.  It is theoretically possible
+  (though unlikely) for two files to have the same inode number but be on two
+  different filesystems, and that could confuse this script.
