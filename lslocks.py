@@ -89,7 +89,8 @@ def lslocks(rootpath):
 def main(argv):
     """Main"""
     if len(argv) != 2:
-        sys.stderr.write('USAGE: %s <directory>\n')
+        myname = os.path.basename(sys.argv[0])
+        sys.stderr.write('USAGE: %s <directory>\n' % myname)
         sys.exit(1)
 
     rootpath = argv[1]
