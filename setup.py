@@ -7,5 +7,6 @@ setuptools.setup(
     name='lslocks',
     author='Benjamin Staffin',
     author_email='benley@gmail.com',
-    scripts=['lslocks.py']
+    scripts=['lslocks.py'],
+    install_requires=['psutil']
 )

@@ -3,10 +3,12 @@
 
 import logging
 import os
+import signal
 import tempfile
 import time
 import unittest
-import subprocess
+
+import psutil
 
 import lslocks
 
@@ -22,7 +24,7 @@ class LslocksTests(unittest.TestCase):
     """
 
     def _lockhelper(self, path):
-        proc = subprocess.Popen(
+        proc = psutil.Popen(
             ['flock', path, '-c', 'while true; do sleep 10; done'])
         self.subprocs.append(proc)
         logging.debug('Locking %s', path)
@@ -36,6 +38,9 @@ class LslocksTests(unittest.TestCase):
     def tearDown(self):
         for proc in self.subprocs:
             logging.debug('Killing %s', proc.pid)
+            children = psutil.Process(proc.pid).children(recursive=True)
+            for childproc in children:
+                childproc.terminate()
             proc.terminate()
         for tmpf in self.tmpfiles:
             os.unlink(tmpf)
@@ -53,14 +58,14 @@ class LslocksTests(unittest.TestCase):
     def testDirLock(self):
         """Lock a directory, check that lslocks sees it."""
         dirtolock = tempfile.mkdtemp()
+        self.tmpdirs.append(dirtolock)
         lockproc = self._lockhelper(dirtolock)
         time.sleep(1)  # Ugly, sorry. Give flock a moment to start up.
 
-        locks = [(pid, path.rstrip('/'))
-                 for pid, path in lslocks.lslocks(dirtolock)]
-        self.assertEqual(
-            locks,
-            [(lockproc.pid, dirtolock)])
+        locks = {(pid, path.rstrip('/'))
+                 for pid, path in lslocks.lslocks(dirtolock)}
+        expected_locks = {(lockproc.pid, dirtolock)}
+        self.assertSetEqual(expected_locks, locks)
 
     def testFileLocks(self):
         """Lock several files, verify that lslocks finds all of them."""
